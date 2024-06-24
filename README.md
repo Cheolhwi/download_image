@@ -1,8 +1,12 @@
 # Twitter Media Downloader
 
-*Read this in other languages: [English](#english), [简体中文](#简体中文)*
+*[Read this in other languages: [English](#english), [简体中文](#简体中文)]*
 
 ---
+
+<!-- Start of English section -->
+
+<div id="english">
 
 ## English
 
@@ -79,6 +83,14 @@ If you encounter any issues:
 2. **ChromeDriver Errors**: Make sure your Chrome browser is up to date.
 3. **Login Issues**: If login fails, manually check your credentials and try again.
 
+</div>
+
+<!-- End of English section -->
+
+<!-- Start of Chinese section -->
+
+<div id="简体中文">
+
 ## 简体中文
 
 这个项目旨在从指定的Twitter用户的资料中下载媒体（图像）。它使用Selenium WebDriver来自动化登录过程，并使用`webdriver_manager`来管理ChromeDriver。
@@ -154,3 +166,6 @@ If you encounter any issues:
 2. **ChromeDriver错误**：确保您的Chrome浏览器是最新的。
 3. **登录问题**：如果登录失败，请手动检查您的凭据并重试。
 
+</div>
+
+<!-- End of Chinese section -->
