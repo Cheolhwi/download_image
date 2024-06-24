@@ -2,7 +2,7 @@
 
 这个项目旨在从指定的Twitter用户的资料中下载媒体（图像）。它使用Selenium WebDriver来自动化登录过程，并使用`webdriver_manager`来管理ChromeDriver。
 
-*[阅读其他语言的内容: [English](README.md)]*
+*[阅读其他语言的内容: [English](https://github.com/Cheolhwi/download_image/blob/master/README.md)]*
 
 ## 前提条件
 
