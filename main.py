@@ -42,7 +42,7 @@ def main():
         print("Cookies file not found. Please login first.")
         login_main()
 
-    username = input("Enter the Twitter username: ")
+    username = input("Enter the download username: ")
     image_urls = get_media_images(username, cookies_file, base_folder_path)
     print(f"Downloaded {len(image_urls)} images for user {username}")
 
