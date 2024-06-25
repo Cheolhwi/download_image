@@ -15,7 +15,7 @@
 
 ### 步骤1：下载可执行文件
 
-从[发布页面](https://github.com/Cheolhwi/download_image/releases/download/downloadTool/TwitterDownloader.exe)下载 `TwitterDownloader.exe` 文件。
+从[发布页面](https://github.com/Cheolhwi/download_image/releases/)下载 `TwitterDownloader.exe` 文件。
 
 ### 步骤2：登录Twitter
 
