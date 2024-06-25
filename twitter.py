@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 import time
 from tqdm import tqdm
 from webdriver_manager.chrome import ChromeDriverManager
+from concurrent.futures import ThreadPoolExecutor
 
 
 def load_cookies(driver, cookies_file):
@@ -26,6 +27,19 @@ def download_image(url, folder_path, image_name):
         with open(os.path.join(folder_path, image_name), 'wb') as file:
             for chunk in response.iter_content(1024):
                 file.write(chunk)
+
+
+def download_images_concurrently(image_urls, user_folder_path):
+    total_images = len(image_urls)
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = []
+        for idx, img_url in enumerate(image_urls):
+            image_name = f'image_{idx + 1}.jpg'
+            futures.append(executor.submit(download_image, img_url, user_folder_path, image_name))
+
+        for future in tqdm(futures, desc="Progress", unit="image", total=total_images):
+            future.result()  # wait for each future to complete
 
 
 def get_media_images(username, cookies_file, base_folder_path):
@@ -94,9 +108,7 @@ def get_media_images(username, cookies_file, base_folder_path):
             os.makedirs(user_folder_path)
 
         print("Downloading images:")
-        for idx, img_url in enumerate(tqdm(all_image_urls, desc="Progress", unit="image")):
-            image_name = f'image_{idx + 1}.jpg'
-            download_image(img_url, user_folder_path, image_name)
+        download_images_concurrently(all_image_urls, user_folder_path)
 
     finally:
         driver.quit()
