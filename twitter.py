@@ -1,4 +1,5 @@
 import os
+import sys
 import requests
 import pickle
 from selenium import webdriver
@@ -11,8 +12,8 @@ from bs4 import BeautifulSoup
 import time
 from tqdm import tqdm
 from webdriver_manager.chrome import ChromeDriverManager
-from concurrent.futures import ThreadPoolExecutor
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Event
 
 def load_cookies(driver, cookies_file):
     with open(cookies_file, 'rb') as file:
@@ -20,32 +21,30 @@ def load_cookies(driver, cookies_file):
         for cookie in cookies:
             driver.add_cookie(cookie)
 
-
-def download_image(url, folder_path, image_name):
+def download_image(url, folder_path, image_name, stop_event):
+    if stop_event.is_set():
+        return
     response = requests.get(url, stream=True)
     if response.status_code == 200:
         with open(os.path.join(folder_path, image_name), 'wb') as file:
             for chunk in response.iter_content(1024):
+                if stop_event.is_set():
+                    break
                 file.write(chunk)
 
-
-def download_images_concurrently(image_urls, user_folder_path):
+def download_images_concurrently(image_urls, user_folder_path, stop_event):
     total_images = len(image_urls)
-
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = []
-        for idx, img_url in enumerate(image_urls):
-            image_name = f'image_{idx + 1}.jpg'
-            futures.append(executor.submit(download_image, img_url, user_folder_path, image_name))
-
-        for future in tqdm(futures, desc="Progress", unit="image", total=total_images):
-            future.result()  # wait for each future to complete
-
+    with ThreadPoolExecutor(max_workers=3) as executor:  # 限制为3个线程
+        futures = [executor.submit(download_image, img_url, user_folder_path, f'image_{idx + 1}.jpg', stop_event) for idx, img_url in enumerate(image_urls)]
+        for future in tqdm(as_completed(futures), desc="Progress", unit="image", total=total_images):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error downloading image: {e}")
 
 def parse_page_source(page_source):
     soup = BeautifulSoup(page_source, 'html.parser')
     image_urls = set()
-
     for img in soup.find_all('img', {'src': True}):
         src = img['src']
         if 'pbs.twimg.com/media' in src:
@@ -53,11 +52,9 @@ def parse_page_source(page_source):
             high_res_src = high_res_src.replace('name=small', 'name=4096x4096')
             high_res_src = high_res_src.replace('name=360x360', 'name=4096x4096')
             image_urls.add(high_res_src)
-
     return image_urls
 
-
-def get_media_images(username, cookies_file, base_folder_path):
+def get_media_images(username, cookies_file, base_folder_path, stop_event):
     url = f'https://x.com/{username}/media'
 
     chrome_options = Options()
@@ -77,7 +74,7 @@ def get_media_images(username, cookies_file, base_folder_path):
         print("Page loading, please wait", end="", flush=True)
         driver.get(url)
 
-        while True:
+        while not stop_event.is_set():
             time.sleep(0.5)
             print(".", end="", flush=True)
             try:
@@ -88,17 +85,20 @@ def get_media_images(username, cookies_file, base_folder_path):
             except:
                 continue
 
+        if stop_event.is_set():
+            return []
+
         print("\nPage loaded, starting to parse the content.")
 
         all_image_urls = set()
         page_sources = []
 
-        scroll_pause_time = 1  # Reduce pause time to speed up
+        scroll_pause_time = 1
         scroll_attempts = 0
         max_scroll_attempts = 20
         last_height = driver.execute_script("return document.body.scrollHeight")
 
-        while scroll_attempts < max_scroll_attempts:
+        while scroll_attempts < max_scroll_attempts and not stop_event.is_set():
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(scroll_pause_time)
             new_height = driver.execute_script("return document.body.scrollHeight")
@@ -111,21 +111,25 @@ def get_media_images(username, cookies_file, base_folder_path):
 
             page_sources.append(driver.page_source)
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [executor.submit(parse_page_source, page_source) for page_source in page_sources]
+        if stop_event.is_set():
+            return []
 
-            for future in tqdm(futures, desc="Parsing", unit="page"):
-                all_image_urls.update(future.result())
+        with ThreadPoolExecutor(max_workers=3) as executor:  # 限制为3个线程
+            futures = [executor.submit(parse_page_source, page_source) for page_source in page_sources]
+            for future in tqdm(as_completed(futures), desc="Parsing", unit="page", total=len(page_sources)):
+                try:
+                    all_image_urls.update(future.result())
+                except Exception as e:
+                    print(f"Error parsing page source: {e}")
 
         user_folder_path = os.path.join(base_folder_path, username)
         if not os.path.exists(user_folder_path):
             os.makedirs(user_folder_path)
 
         print("Downloading images:")
-        download_images_concurrently(all_image_urls, user_folder_path)
+        download_images_concurrently(all_image_urls, user_folder_path, stop_event)
 
     finally:
         driver.quit()
 
-    print("Image URLs extracted:", list(all_image_urls))
     return list(all_image_urls)
