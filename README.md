@@ -1,6 +1,6 @@
 # Twitter Media Downloader
 
-This project is designed to download media (images) from a specified Twitter user's profile. It uses Selenium WebDriver to automate the login process, ahttps://github.com/Cheolhwi/download_image/blob/master/README.mdnd `webdriver_manager` to manage ChromeDriver.
+This project is designed to download media (images) from a specified Twitter user's profile. It uses Selenium WebDriver to automate the login process, `webdriver_manager` to manage ChromeDriver.
 
 *[Read this in other languages: [简体中文](https://github.com/Cheolhwi/download_image/blob/master/readmezh.md)]*
 
