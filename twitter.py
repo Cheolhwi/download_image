@@ -42,6 +42,21 @@ def download_images_concurrently(image_urls, user_folder_path):
             future.result()  # wait for each future to complete
 
 
+def parse_page_source(page_source):
+    soup = BeautifulSoup(page_source, 'html.parser')
+    image_urls = set()
+
+    for img in soup.find_all('img', {'src': True}):
+        src = img['src']
+        if 'pbs.twimg.com/media' in src:
+            high_res_src = src.replace('name=medium', 'name=4096x4096')
+            high_res_src = high_res_src.replace('name=small', 'name=4096x4096')
+            high_res_src = high_res_src.replace('name=360x360', 'name=4096x4096')
+            image_urls.add(high_res_src)
+
+    return image_urls
+
+
 def get_media_images(username, cookies_file, base_folder_path):
     url = f'https://x.com/{username}/media'
 
@@ -76,8 +91,9 @@ def get_media_images(username, cookies_file, base_folder_path):
         print("\nPage loaded, starting to parse the content.")
 
         all_image_urls = set()
+        page_sources = []
 
-        scroll_pause_time = 3
+        scroll_pause_time = 1  # Reduce pause time to speed up
         scroll_attempts = 0
         max_scroll_attempts = 20
         last_height = driver.execute_script("return document.body.scrollHeight")
@@ -93,15 +109,13 @@ def get_media_images(username, cookies_file, base_folder_path):
                 scroll_attempts = 0
             last_height = new_height
 
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            page_sources.append(driver.page_source)
 
-            for img in soup.find_all('img', {'src': True}):
-                src = img['src']
-                if 'pbs.twimg.com/media' in src:
-                    high_res_src = src.replace('name=medium', 'name=4096x4096')
-                    high_res_src = high_res_src.replace('name=small', 'name=4096x4096')
-                    high_res_src = high_res_src.replace('name=360x360', 'name=4096x4096')
-                    all_image_urls.add(high_res_src)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(parse_page_source, page_source) for page_source in page_sources]
+
+            for future in tqdm(futures, desc="Parsing", unit="page"):
+                all_image_urls.update(future.result())
 
         user_folder_path = os.path.join(base_folder_path, username)
         if not os.path.exists(user_folder_path):
