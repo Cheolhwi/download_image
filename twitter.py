@@ -26,6 +26,10 @@ def download_image(url, folder_path, image_name, stop_event):
         return
     response = requests.get(url, stream=True)
     if response.status_code == 200:
+        # 检查图片大小
+        if int(response.headers.get('content-length', 0)) < 100 * 1024:  # 100 KB
+            print(f"Image {image_name} is less than 100KB, skipping download.")
+            return
         with open(os.path.join(folder_path, image_name), 'wb') as file:
             for chunk in response.iter_content(1024):
                 if stop_event.is_set():
