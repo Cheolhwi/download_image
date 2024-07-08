@@ -15,7 +15,7 @@ Before running the executable, ensure the following prerequisites are met:
 
 ### Step 1: Download the Executable
 
-Download the `TwitterDownloader.exe` file from the [release page](https://github.com/Cheolhwi/download_image/releases/download/downloadTool/TwitterDownloader.exe).
+Download the `TwitterDownloader.exe` file from the [release page](https://github.com/Cheolhwi/download_image/releases/).
 
 ### Step 2: Login to Twitter
 
