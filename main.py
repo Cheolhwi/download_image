@@ -10,10 +10,12 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import subprocess
+import shutil
 
 # Global flag to control thread termination
 terminate_event = Event()
 COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # One week in seconds
+
 
 def check_and_download_chromedriver():
     try:
@@ -25,12 +27,34 @@ def check_and_download_chromedriver():
 
         # Specify the correct version of chromedriver
         service = Service(ChromeDriverManager().install())
-        # Pass service and chrome_options correctly
         driver = webdriver.Chrome(service=service, options=chrome_options)
         driver.quit()
-    except Exception as e:
-        print(f"An error occurred while checking or downloading chromedriver: {e}")
-        sys.exit(1)
+    except OSError as e:
+        # Check if the error is related to WinError 193
+        if "[WinError 193]" in str(e):
+            print("OSError: [WinError 193] encountered. Attempting to clear WebDriver folder and retry.")
+
+            try:
+                # Get the WebDriver installation path
+                webdriver_path = ChromeDriverManager().install()
+                webdriver_dir = os.path.dirname(webdriver_path)
+
+                # Clear the WebDriver folder
+                shutil.rmtree(webdriver_dir)  # Remove the folder and all its contents
+                print(f"Cleared WebDriver folder at: {webdriver_dir}")
+
+                # Retry the WebDriver installation
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                driver.quit()
+
+                print("ChromeDriver setup succeeded after retry.")
+            except Exception as retry_error:
+                print(f"Failed to clear or reinstall WebDriver: {retry_error}")
+                sys.exit(1)
+        else:
+            print(f"An error occurred while checking or downloading chromedriver: {e}")
+            sys.exit(1)
 
 def check_cookie_file_age(cookies_file):
     """Check if the cookie file is older than a week and delete if necessary."""
