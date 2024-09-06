@@ -15,15 +15,6 @@ import subprocess
 terminate_event = Event()
 COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # One week in seconds
 
-def check_webdriver_manager():
-    try:
-        # Check if webdriver_manager is installed and up-to-date
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "webdriver_manager"])
-        print("webdriver_manager is up-to-date.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error updating webdriver_manager: {e}")
-        sys.exit(1)
-
 def check_and_download_chromedriver():
     try:
         chrome_options = Options()
@@ -73,9 +64,6 @@ def main():
     if not os.path.exists(base_folder_path):
         os.makedirs(base_folder_path)
         print(f"Created folder: {base_folder_path}")
-
-    # Check and update webdriver_manager
-    check_webdriver_manager()
 
     # Download or update chromedriver
     check_and_download_chromedriver()
